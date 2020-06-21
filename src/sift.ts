@@ -61,9 +61,6 @@ export async function sift(args: Arguments): Promise<void> {
         ruleByStartID[startID] = rule
     }
 
-    await page.close();
-    await browser.close();
-
     const outData: { [key: string]: Array<string> } = {};
 
     // Fetch stylesheet data for used rules
@@ -106,6 +103,9 @@ export async function sift(args: Arguments): Promise<void> {
             console.log(data)
         }
     }
+
+    await page.close();
+    await browser.close();
 }
 
 
