@@ -1,5 +1,5 @@
 {
-  "name": "sift",
+  "name": "sift-css",
   "version": "0.1.0",
   "description": "Automatically remove unused CSS rules using Chrome code coverage",
   "main": "src/sift.js",
@@ -9,8 +9,8 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "puppeteer": "^4.0.0",
-    "postcss": "^7.0.32"
+    "postcss": "^7.0.32",
+    "puppeteer": "^4.0.0"
   },
   "devDependencies": {
     "@types/node": "^14.0.13",
@@ -25,12 +25,12 @@
   },
   "author": "Theisen Sanders",
   "license": "MIT",
-  "homepage": "https://github.com/tsand/sift#readme",
+  "homepage": "https://github.com/tsand/sift-css#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/tsand/sift.git"
+    "url": "git+https://github.com/tsand/sift-css.git"
   },
   "bugs": {
-    "url": "https://github.com/tsand/sift/issues"
+    "url": "https://github.com/tsand/sift-css/issues"
   }
 }
