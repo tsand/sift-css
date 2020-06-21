@@ -1,6 +1,6 @@
 {
   "name": "sift-css",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Automatically remove unused CSS rules using Chrome code coverage",
   "files": [
     "dist/**/*"
