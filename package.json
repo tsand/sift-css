@@ -2,7 +2,12 @@
   "name": "sift-css",
   "version": "0.1.0",
   "description": "Automatically remove unused CSS rules using Chrome code coverage",
-  "main": "src/sift.js",
+  "files": [
+    "dist/**/*"
+  ],
+  "bin": {
+    "sift-css": "dist/bin/cli.js"
+  },
   "scripts": {
     "build": "tsc",
     "format": "eslint src/** --fix",
@@ -33,6 +38,13 @@
     "type": "git",
     "url": "git+https://github.com/tsand/sift-css.git"
   },
+  "keywords": [
+    "sift",
+    "puppeteer",
+    "css",
+    "coverage",
+    "cli"
+  ],
   "bugs": {
     "url": "https://github.com/tsand/sift-css/issues"
   }
