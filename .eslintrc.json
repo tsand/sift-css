@@ -1,4 +1,5 @@
 {
+    "root": true,
     "parser": "@typescript-eslint/parser",
     "plugins": [
         "@typescript-eslint"
@@ -9,6 +10,7 @@
     ],
     "env": {
         "es2020": true,
-        "jasmine": true
+        "jasmine": true,
+        "node": true
     }
 }
