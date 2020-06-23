@@ -21,6 +21,12 @@ yargs.command('$0 <url>', 'Sift a webpage', yargs => {
         type: 'boolean',
         default: false
     })
+    yargs.options('interactive', {
+        alias: 'i',
+        describe: 'Open browser window to interact with page before sifting CSS rules',
+        type: 'boolean',
+        default: false
+    })
 })
 
 
@@ -29,6 +35,7 @@ export interface Arguments {
     outDir?: string
     outExt: string,
     scaleViewport: boolean,
+    interactive: boolean,
 }
 
 const argv = yargs.argv as unknown as Arguments;

@@ -1,60 +1,47 @@
 import * as fs from "fs";
 import * as path from "path";
 import * as postcss from 'postcss';
-import * as puppeteer from 'puppeteer';
 import type { Protocol } from 'devtools-protocol';
 
 import { Arguments } from './bin/cli'
+import { BrowserClient } from './browser'
 
 export async function sift(args: Arguments): Promise<void> {
-    const browser = await puppeteer.launch({
-        // headless:false,
-        args: [
-            '--window-size=1400,1080',
-        ],
-    });
-
-    const page = await browser.newPage()
-
-    // Setup Chrome DevTools protocol client
-    const cdpClient = (await page.target().createCDPSession());
-    await cdpClient.send('Page.enable')
-    await cdpClient.send('DOM.enable')
-    await cdpClient.send('CSS.enable')
+    const browser = new BrowserClient(!args.interactive);
+    await browser.start();
+    const page = await browser.newPage(true);
 
     const styleSheetHeaders: { [key: string]: Protocol.CSS.CSSStyleSheetHeader } = {};
-    cdpClient.on('CSS.styleSheetAdded', async (event: Protocol.CSS.StyleSheetAddedEvent) => {
+    const styleSheetData: { [key: string]: string } = {};
+    browser.onStyleSheetAdded(async (event: Protocol.CSS.StyleSheetAddedEvent) => {
         styleSheetHeaders[event.header.styleSheetId] = event.header;
-    });
+        styleSheetData[event.header.styleSheetId] = await browser.getStyleSheetText(event.header.styleSheetId);
+    })
 
-    await cdpClient.send('CSS.startRuleUsageTracking')
+    await browser.startCSSRuleUsageTracking();
     await page.goto(args.url);
 
-    // Scale viewport to capture media queries
-    if (args.scaleViewport) {
+    // Manipulate page
+    if (args.interactive) {
+        // TODO: Need to get coverage data before browser is closed (maybe refresh inside loop?)
+        await browser.waitForDisconnect();
+    } else if (args.scaleViewport) {
+        // Scale viewport to capture media queries
         let width = 1400
         while (width > 0) {
             await page.setViewport({width: width, height: 1080});
             width -= 100;
         }
     }
+    await browser.stop()
 
-    const styleSheetData: { [key: string]: string } = {};
-
-    // Get coverage
     const usedStyleSheetIds: Set<string> = new Set()
     const ruleByStartID: { [key: string]: Protocol.CSS.RuleUsage } = {};
 
-    const delta = await cdpClient.send('CSS.takeCoverageDelta') as Protocol.CSS.TakeCoverageDeltaResponse;
-    const coverage = delta.coverage.filter((r) => r.used);
+    const delta = await browser.stopCSSRuleUsageTracking();
+    const coverage = delta.filter((r) => r.used);
     for (const rule of coverage) {
         usedStyleSheetIds.add(rule.styleSheetId);
-
-        // Fetch stylesheet data if needed
-        if (!(rule.styleSheetId in styleSheetData)) {
-            const resp = await cdpClient.send('CSS.getStyleSheetText', {styleSheetId: rule.styleSheetId}) as Protocol.CSS.GetStyleSheetTextResponse;
-            styleSheetData[rule.styleSheetId] = resp.text;
-        }
 
         const charRange = ruleToCharRange(rule, styleSheetData[rule.styleSheetId])
         const startID = `${rule.styleSheetId}:${charRange.start?.line}:${charRange.start?.column}`
@@ -66,8 +53,7 @@ export async function sift(args: Arguments): Promise<void> {
     // Fetch stylesheet data for used rules
     const syntaxTrees: { [key: string]: postcss.Root } = {};
     for (const styleSheetId of usedStyleSheetIds) {
-        const resp = await cdpClient.send('CSS.getStyleSheetText', {styleSheetId: styleSheetId}) as Protocol.CSS.GetStyleSheetTextResponse;
-        const ast = postcss.parse(resp.text);
+        const ast = postcss.parse(await browser.getStyleSheetText(styleSheetId));
         syntaxTrees[styleSheetId] = ast;
 
         // Walk it
@@ -102,16 +88,6 @@ export async function sift(args: Arguments): Promise<void> {
             console.log('// ' + sourceUrl.toString())
             console.log(data)
         }
-    }
-
-    await page.close();
-    await browser.close();
-}
-
-
-declare module "postcss" {
-    interface Input {
-        css: string
     }
 }
 
