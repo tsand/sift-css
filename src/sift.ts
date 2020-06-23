@@ -3,11 +3,16 @@ import * as path from "path";
 import * as postcss from 'postcss';
 import type { Protocol } from 'devtools-protocol';
 
-import { Arguments } from './bin/cli'
 import { BrowserClient } from './browser'
 
-export async function sift(args: Arguments): Promise<void> {
-    const browser = new BrowserClient(!args.interactive);
+export async function sift(
+    url: string,
+    interactive = false,
+    scaleViewport = false,
+    outDir?: string,
+    outExt = ".sift.css",
+): Promise<SiftResult> {
+    const browser = new BrowserClient(!interactive);
     await browser.start();
     const page = await browser.newPage(true);
 
@@ -19,13 +24,13 @@ export async function sift(args: Arguments): Promise<void> {
     })
 
     await browser.startCSSRuleUsageTracking();
-    await page.goto(args.url);
+    await page.goto(url);
 
     // Manipulate page
-    if (args.interactive) {
+    if (interactive) {
         // TODO: Need to get coverage data before browser is closed (maybe refresh inside loop?)
         await browser.waitForDisconnect();
-    } else if (args.scaleViewport) {
+    } else if (scaleViewport) {
         // Scale viewport to capture media queries
         let width = 1400
         while (width > 0) {
@@ -33,15 +38,22 @@ export async function sift(args: Arguments): Promise<void> {
             width -= 100;
         }
     }
-    await browser.stop()
 
     const usedStyleSheetIds: Set<string> = new Set()
     const ruleByStartID: { [key: string]: Protocol.CSS.RuleUsage } = {};
 
     const delta = await browser.stopCSSRuleUsageTracking();
+
+    console.log(delta)
     const coverage = delta.filter((r) => r.used);
     for (const rule of coverage) {
         usedStyleSheetIds.add(rule.styleSheetId);
+
+        // Fetch stylesheet data if needed
+        // TODO: This shouldn't be needed
+        if (!(rule.styleSheetId in styleSheetData)) {
+            styleSheetData[rule.styleSheetId] = await browser.getStyleSheetText(rule.styleSheetId)
+        }
 
         const charRange = ruleToCharRange(rule, styleSheetData[rule.styleSheetId])
         const startID = `${rule.styleSheetId}:${charRange.start?.line}:${charRange.start?.column}`
@@ -53,7 +65,7 @@ export async function sift(args: Arguments): Promise<void> {
     // Fetch stylesheet data for used rules
     const syntaxTrees: { [key: string]: postcss.Root } = {};
     for (const styleSheetId of usedStyleSheetIds) {
-        const ast = postcss.parse(await browser.getStyleSheetText(styleSheetId));
+        const ast = postcss.parse(styleSheetData[styleSheetId]);
         syntaxTrees[styleSheetId] = ast;
 
         // Walk it
@@ -68,16 +80,22 @@ export async function sift(args: Arguments): Promise<void> {
         })
     }
 
+    const result: SiftResult = {files: []};
     for (const styleSheetId in outData) {
         const data = outData[styleSheetId].join('\n')
         const sourceUrl = new URL(styleSheetHeaders[styleSheetId].sourceURL)
+        result.files.push({
+            url: sourceUrl.toString(),
+            data: data,
+            sifted: styleSheetData[styleSheetId].length - data.length
+        })
 
-        if (args.outDir) {
-            let outFile = args.outDir.replace(/\/$/, '') + sourceUrl.pathname
+        if (outDir) {
+            let outFile = outDir.replace(/\/$/, '') + sourceUrl.pathname
 
             const basename = path.basename(outFile)
             const dir = outFile.replace(basename, '')
-            outFile = dir + basename.substr(0, basename.indexOf(".")) + args.outExt;
+            outFile = dir + basename.substr(0, basename.indexOf(".")) + outExt;
 
             if (!fs.existsSync(dir)) {
                 fs.mkdirSync(dir, {recursive: true})
@@ -85,10 +103,19 @@ export async function sift(args: Arguments): Promise<void> {
 
             fs.writeFileSync(outFile, data)
         } else {
+            // TODO: Remove print
             console.log('// ' + sourceUrl.toString())
             console.log(data)
         }
     }
+
+    await browser.stop()
+
+    return result
+}
+
+interface SiftResult {
+    files: Array<{url: string, data: string, sifted: number}>
 }
 
 interface charID {

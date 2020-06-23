@@ -37,7 +37,6 @@ export class BrowserClient {
         this.browserConnectionInterval = undefined
 
         this.cdp = undefined
-        await this.stopCSSRuleUsageTracking()
 
         try {
             await this.page?.close();

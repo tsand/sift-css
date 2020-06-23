@@ -7,6 +7,12 @@ yargs.help().alias('h', 'help')
 
 yargs.command('$0 <url>', 'Sift a webpage', yargs => {
     yargs.positional('url', {type: 'string', demandOption: true})
+    yargs.options('interactive', {
+        alias: 'i',
+        describe: 'Open browser window to interact with page before sifting CSS rules',
+        type: 'boolean',
+        default: false
+    })
     yargs.options('outDir', {
         describe: 'The name of the directory to output the sifted CSS files',
         type: 'string'
@@ -21,25 +27,19 @@ yargs.command('$0 <url>', 'Sift a webpage', yargs => {
         type: 'boolean',
         default: false
     })
-    yargs.options('interactive', {
-        alias: 'i',
-        describe: 'Open browser window to interact with page before sifting CSS rules',
-        type: 'boolean',
-        default: false
-    })
 })
 
 
 export interface Arguments {
     url: string
+    interactive?: boolean,
     outDir?: string
-    outExt: string,
-    scaleViewport: boolean,
-    interactive: boolean,
+    outExt?: string,
+    scaleViewport?: boolean,
 }
 
 const argv = yargs.argv as unknown as Arguments;
 
 (async () => {
-    await sift(argv)
+    await sift(argv.url, argv.interactive, argv.scaleViewport, argv.outDir, argv.outExt)
 })();
