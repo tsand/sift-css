@@ -154,7 +154,7 @@ function ruleToCharRange(rule: Protocol.CSS.RuleUsage, styleSheetData: string): 
 }
 
 function ruleToString(rule: postcss.Rule): string {
-    if (rule.parent.type == 'atrule' && rule.parent.name == 'media') {
+    if (rule.parent instanceof postcss.AtRule && rule.parent.name == 'media') {
         return rule.parent.toString()
     }
     return rule.toString()
