@@ -26,7 +26,7 @@
     "@types/yargs": "^17.0.7",
     "@typescript-eslint/eslint-plugin": "^5.5.0",
     "@typescript-eslint/parser": "^5.5.0",
-    "devtools-protocol": "0.0.946693",
+    "devtools-protocol": "0.0.965299",
     "eslint": "^8.3.0",
     "jasmine": "^3.10.0",
     "ts-loader": "^9.2.6",
