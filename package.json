@@ -20,7 +20,7 @@
     "yargs": "^17.3.0"
   },
   "devDependencies": {
-    "@types/jasmine": "^3.10.2",
+    "@types/jasmine": "^4.0.2",
     "@types/node": "^16.11.11",
     "@types/puppeteer": "^5.4.4",
     "@types/yargs": "^17.0.7",
